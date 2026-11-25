@@ -1,0 +1,249 @@
+<?php
+// Chặn người dùng gõ trực tiếp đường dẫn file này trên thanh địa chỉ trình duyệt
+defined('MOODLE_INTERNAL') || die();
+/** @var stdClass $plugin */
+// 1. Tên định danh của plugin (Bắt buộc theo cú pháp: tên_thư_mục_cha + '_' + tên_thư_mục_plugin)
+$plugin->component = 'local_antishot';
+
+// 2. Mã phiên bản định dạng YYYYMMDDXX (Năm + Tháng + Ngày + Số thứ tự 01..99)
+// Khi bạn sửa Database hoặc thêm Hook mới, chỉ cần tăng số cuối lên 1 (ví dụ: 2026102202)
+$plugin->version   = 2026102202;
+
+// 3. Phiên bản Moodle tối thiểu để chạy plugin (2024100700 tương ứng từ Moodle 4.5 và 5.0 trở lên)
+$plugin->requires  = 2024100700;
+
+// 4. Trạng thái ổn định của mã nguồn
+$plugin->maturity  = MATURITY_STABLE;
+
+// 5. Số hiệu phiên bản hiển thị cho Admin dễ quản lý
+$plugin->release   = '1.0.0';<?php
+// Chặn truy cập trực tiếp từ trình duyệt
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Chèn mục đóng/mở (Header) và các tùy chọn Bật/Tắt vào form cài đặt của Bài giảng, SCORM, Quiz, v.v.
+ * Hàm này tự động được Moodle gọi khi giảng viên mở trang cài đặt học liệu (course/modedit.php).
+ */
+function local_antishot_coursemodule_standard_elements($formwrapper, $mform) {
+    global $DB;
+
+    // Đã xóa bỏ giới hạn $allowedmodules. Tùy chọn này giờ sẽ xuất hiện ở mọi Module.
+
+    // 1. Tạo thanh tiêu đề đóng/mở (Accordion Header) giống hệt các mục sẵn có của Moodle
+    $mform->addElement('header', 'antishot_header', get_string('antishot_header', 'local_antishot'));
+
+    // 2. Tùy chọn Bật/Tắt chống chụp màn hình
+    $mform->addElement('selectyesno', 'antishot_enabled', get_string('enable_antishot', 'local_antishot'));
+    $mform->addHelpButton('antishot_enabled', 'enable_antishot', 'local_antishot');
+    $mform->setDefault('antishot_enabled', 0);
+
+    // 3. Tùy chọn Bật/Tắt Watermark định danh (chỉ hiện khi đã bật chống chụp màn hình)
+    $mform->addElement('selectyesno', 'antishot_watermark', get_string('enable_watermark', 'local_antishot'));
+    $mform->addHelpButton('antishot_watermark', 'enable_watermark', 'local_antishot');
+    $mform->setDefault('antishot_watermark', 1);
+    $mform->hideIf('antishot_watermark', 'antishot_enabled', 'eq', 0);
+
+    // 4. Nếu đang chỉnh sửa học liệu đã có sẵn, nạp lại cấu hình đã lưu từ Database
+    $cm = $formwrapper->get_coursemodule();
+    if ($cm && !empty($cm->id)) {
+        $record = $DB->get_record('local_antishot_cm', ['cmid' => $cm->id]);
+        if ($record) {
+            $mform->setDefault('antishot_enabled', $record->enabled);
+            $mform->setDefault('antishot_watermark', $record->watermark);
+        }
+    }
+}
+
+/**
+ * Tự động lưu giá trị Bật/Tắt vào Database khi giảng viên bấm nút "Save and return to course" hoặc "Save and display".
+ */
+function local_antishot_coursemodule_edit_post_actions($data, $course) {
+    global $DB;
+
+    if (!isset($data->coursemodule)) {
+        return $data;
+    }
+
+    $cmid = $data->coursemodule;
+    $enabled = !empty($data->antishot_enabled) ? 1 : 0;
+    $watermark = !empty($data->antishot_watermark) ? 1 : 0;
+
+    $existing = $DB->get_record('local_antishot_cm', ['cmid' => $cmid]);
+    if ($existing) {
+        $existing->enabled = $enabled;
+        $existing->watermark = $watermark;
+        $existing->timemodified = time();
+        $DB->update_record('local_antishot_cm', $existing);
+    } else {
+        $record = new stdClass();
+        $record->cmid = $cmid;
+        $record->enabled = $enabled;
+        $record->watermark = $watermark;
+        $record->timemodified = time();
+        $DB->insert_record('local_antishot_cm', $record);
+    }
+
+    return $data;
+}
+
+/**
+ * Tự động dọn dẹp Database khi giảng viên xóa một hoạt động (Quiz, SCORM...) khỏi khóa học.
+ */
+function local_antishot_pre_course_module_delete($cm) {
+    global $DB;
+    $DB->delete_records('local_antishot_cm', ['cmid' => $cm->id]);
+}(function() {
+    'use strict';
+
+    // 1. Đọc cấu hình từ PHP kèm giá trị mặc định cho từng thuộc tính
+    const rawConfig = window.MOODLE_ANTISHOT_CONFIG || {};
+    const config = Object.freeze({
+        watermark: rawConfig.watermark !== undefined ? rawConfig.watermark : true,
+        userText: rawConfig.userText || 'Protected Content',
+        warningTitle: rawConfig.warningTitle || '⚠️ Nội dung đã được tạm ẩn để bảo vệ bản quyền.',
+        warningSubtitle: rawConfig.warningSubtitle || 'Nhấp chuột vào màn hình để tiếp tục bài học.',
+        clipboardBlocked: rawConfig.clipboardBlocked || 'Chức năng chụp màn hình đã bị khóa trên học liệu này.'
+    });
+    delete window.MOODLE_ANTISHOT_CONFIG;
+
+    document.body.classList.add('antishot-protected');
+
+    // 2. Khởi tạo màn chắn cảnh báo
+    const warningOverlay = document.createElement('div');
+    warningOverlay.id = 'antishot-warning-overlay';
+    warningOverlay.innerHTML = config.warningTitle + '<br>' +
+        '<small style="font-size:15px;font-weight:normal;color:#ccc;">' + config.warningSubtitle + '</small>';
+    document.body.appendChild(warningOverlay);
+
+    function triggerBlur() {
+        document.body.classList.add('antishot-blurred');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(config.clipboardBlocked).catch(function() {});
+        }
+    }
+
+    function removeBlur() {
+        document.body.classList.remove('antishot-blurred');
+    }
+
+    warningOverlay.addEventListener('click', removeBlur);
+    window.addEventListener('focus', removeBlur);
+
+    // 3. Làm mờ ngay khi cửa sổ mất tiêu điểm (khi mở Snipping Tool, Win+Shift+S, Alt+Tab...)
+    window.addEventListener('blur', function() {
+        setTimeout(function() {
+            const active = document.activeElement;
+            // Ngoại lệ: Nếu người học nhấn chuột vào bên trong khung bài giảng SCORM (iframe) thì không làm mờ
+            if (active && active.tagName === 'IFRAME') {
+                attachIframeProtection(active);
+                return;
+            }
+            triggerBlur();
+        }, 10);
+    });
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            triggerBlur();
+        }
+    });
+
+    // 4. Bắt các phím tắt chụp màn hình, lưu trang, in ấn và mở DevTools
+    function handleKeyEvents(e) {
+        const key = (e.key || '').toLowerCase();
+        if (
+            e.key === 'PrintScreen' ||
+            e.keyCode === 44 ||
+            e.key === 'F12' ||
+            ((e.ctrlKey || e.metaKey) && ['p', 's', 'u'].includes(key)) ||
+            ((e.ctrlKey || e.metaKey) && e.shiftKey && ['s', 'i', 'c', 'j'].includes(key))
+        ) {
+            e.preventDefault();
+            e.stopPropagation();
+            triggerBlur();
+            return false;
+        }
+    }
+
+    window.addEventListener('keydown', handleKeyEvents, true);
+    window.addEventListener('keyup', handleKeyEvents, true);
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+    });
+
+    // 5. Gắn bộ bắt sự kiện xuyên vào bên trong Iframe của gói SCORM
+    function attachIframeProtection(iframe) {
+        try {
+            const iframeWin = iframe.contentWindow;
+            const iframeDoc = iframe.contentDocument || iframeWin.document;
+            if (iframeDoc && !iframeDoc._antishotAttached) {
+                iframeDoc._antishotAttached = true;
+                iframeWin.addEventListener('keydown', handleKeyEvents, true);
+                iframeWin.addEventListener('keyup', handleKeyEvents, true);
+                iframeDoc.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                });
+                iframeWin.addEventListener('blur', function() {
+                    setTimeout(function() {
+                        if (!document.hasFocus()) {
+                            triggerBlur();
+                        }
+                    }, 20);
+                });
+            }
+        } catch (err) {
+            // Bỏ qua nếu iframe nằm ở tên miền khác (Cross-Origin)
+        }
+    }
+
+    window.addEventListener('load', function() {
+        document.querySelectorAll('iframe').forEach(attachIframeProtection);
+    });
+
+    // 6. Vẽ lớp phủ Watermark định danh người học và chống xóa bằng F12 (MutationObserver)
+    if (config.watermark) {
+        function createWatermark() {
+            if (document.getElementById('antishot-watermark-layer')) {
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 440;
+            canvas.height = 220;
+            const ctx = canvas.getContext('2d');
+
+            ctx.rotate((-22 * Math.PI) / 180);
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = 'rgba(128, 128, 128, 0.20)';
+            ctx.fillText(config.userText, 10, 130);
+            ctx.fillText(new Date().toLocaleString('vi-VN'), 10, 152);
+
+            const wm = document.createElement('div');
+            wm.id = 'antishot-watermark-layer';
+            wm.setAttribute('style', [
+                'position: fixed !important',
+                'inset: 0 !important',
+                'pointer-events: none !important',
+                'z-index: 999998 !important',
+                'background-repeat: repeat !important',
+                'background-image: url(' + canvas.toDataURL('image/png') + ') !important'
+            ].join(';'));
+
+            document.body.appendChild(wm);
+        }
+
+        createWatermark();
+
+        // Tự động vẽ lại ngay lập tức nếu người học mở F12 xóa thẻ HTML Watermark
+        const observer = new MutationObserver(function() {
+            if (!document.getElementById('antishot-watermark-layer')) {
+                createWatermark();
+            }
+        });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true
+        });
+    }
+})();

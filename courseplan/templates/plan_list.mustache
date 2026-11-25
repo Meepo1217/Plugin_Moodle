@@ -1,0 +1,41 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_courseplan/plan_list
+
+    Screen 1: Course Syllabus Plans List (Bảng chuẩn Moodle html_table).
+}}
+<div class="local-courseplan-list-container">
+    {{#isediting}}
+        {{#canmanage}}
+            <div class="d-flex justify-content-end mb-3">
+                <a href="{{newplanurl}}" class="btn btn-primary">
+                    {{#pix}} t/add, core {{/pix}} {{#str}} add_plan, local_courseplan {{/str}}
+                </a>
+            </div>
+        {{/canmanage}}
+    {{/isediting}}
+
+    {{#hasplans}}
+        {{{tablehtml}}}
+    {{/hasplans}}
+    {{^hasplans}}
+        <div class="alert alert-info py-4 my-3 text-center">
+            <p class="mb-0 fs-6">{{emptymessage}}</p>
+        </div>
+    {{/hasplans}}
+</div>

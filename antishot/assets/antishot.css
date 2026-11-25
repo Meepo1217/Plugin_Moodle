@@ -1,0 +1,23 @@
+body.antishot-protected {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+/* Ẩn tức thì nội dung trong 0ms khi bật khiên cảnh báo hoặc khi chuột rời trang */
+body.antishot-shield-active,
+body.antishot-mouse-out {
+    background-color: #090d16 !important;
+}
+
+body.antishot-shield-active #page-content,
+body.antishot-shield-active #region-main,
+body.antishot-shield-active iframe,
+body.antishot-shield-active .activity-header,
+body.antishot-mouse-out #page-content,
+body.antishot-mouse-out #region-main,
+body.antishot-mouse-out iframe,
+body.antishot-mouse-out .activity-header {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    transition: none !important;
+}

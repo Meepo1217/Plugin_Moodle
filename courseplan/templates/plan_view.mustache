@@ -1,0 +1,330 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_courseplan/plan_view
+
+    Screen 2: Course Plan View 100% strictly mirroring Moodle's native /course/view.php (core_courseformat).
+}}
+<div class="course-content">
+    <div id="course-format-courseplan">
+        <h2 class="accesshide">{{planname}}</h2>
+
+        <ul class="topics section-list js-sortable-sections" data-for="course_sectionlist">
+
+            {{! SECTION 0 (GENERAL): DASHBOARD TIẾN ĐỘ & NÚT HOÀN TẤT KẾ HOẠCH }}
+            <li id="section-0" class="section course-section main clearfix" data-sectionid="0" data-for="section" data-id="0" data-number="0">
+                <div class="section-item">
+                    <div class="course-section-header d-flex justify-content-between align-items-center flex-wrap">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-secondary me-2">{{planshortname}}</span>
+                            <span class="text-muted small me-2">{{#str}} creator, local_courseplan {{/str}}:</span>
+                            {{{creatoravatar}}}
+                            <strong class="ms-1 small">{{creatorname}}</strong>
+                        </div>
+
+                        {{#isleader}}
+                            <div class="ms-auto my-1 d-flex align-items-center gap-2">
+                                <a href="{{importurl}}" class="btn btn-outline-success btn-sm" title="Nhập cấu trúc giáo trình từ file Excel">
+                                    {{#pix}} i/export, core {{/pix}} Nhập từ Excel
+                                </a>
+                                {{#publishedcourseurl}}
+                                    <a href="{{publishedcourseurl}}" class="btn btn-outline-success btn-sm">
+                                        {{#pix}} i/course, core {{/pix}} {{#str}} plan_completed_badge, local_courseplan {{/str}}
+                                    </a>
+                                {{/publishedcourseurl}}
+                                <button type="button"
+                                        class="btn btn-primary btn-sm"
+                                        id="btn-complete-plan"
+                                        data-progress="{{progress}}"
+                                        data-incomplete="{{remainingcount}}"
+                                        data-planname="{{planname}}"
+                                        data-publishurl="{{publishurl}}">
+                                    {{#pix}} i/checked, core {{/pix}} {{#str}} complete_plan, local_courseplan {{/str}}
+                                </button>
+                            </div>
+                        {{/isleader}}
+                    </div>
+
+                    <div id="coursecontentcollapseid0" class="content course-content-item-content mt-3">
+                        {{#plansummary}}
+                            <div class="description mb-3 text-muted">{{plansummary}}</div>
+                        {{/plansummary}}
+
+                        <div class="progressbar_container mb-2 js-report-link" style="cursor: pointer;" onclick="window.location.href='{{reporturl}}';">
+                            <a href="{{reporturl}}" class="text-decoration-none text-reset d-block" title="Report">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-semibold small">{{#str}} dashboard_overview, local_courseplan {{/str}} &mdash; {{summarytext}}</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold small">{{progress}}%</span>
+                                        <span class="badge bg-primary text-white small px-2 py-1">Report &rarr;</span>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 14px;">
+                                    <div class="progress-bar progress-bar-striped {{#is100}}bg-success{{/is100}}"
+                                         role="progressbar"
+                                         aria-valuenow="{{progress}}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100"
+                                         style="width: {{progress}}%">
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </li>
+
+            {{! CÁC SECTION/CHƯƠNG KẾ THỪA 100% CẤU TRÚC core_courseformat/local/content/section }}
+            {{#sections}}
+            <li id="section-{{sectionid}}"
+                class="section course-section main clearfix js-section-li"
+                data-sectionid="{{sectionid}}"
+                data-for="section"
+                data-id="{{sectionid}}"
+                data-number="{{sectionid}}"
+                data-sectionname="{{sectiontitle}}">
+
+                <div class="section-item">
+                    {{! Section Header chuẩn Moodle với Chevron gập mở }}
+                    <div class="course-section-header d-flex" data-for="section_title" data-id="{{sectionid}}" data-number="{{sectionid}}">
+                        <div class="d-flex align-items-center position-relative">
+                            {{#isediting}}
+                                {{#isleader}}
+                                    <span class="me-2 text-muted js-section-drag" data-drag-type="move" style="cursor: move;" title="{{#str}} drag_to_reorder, local_courseplan {{/str}}">
+                                        {{#pix}} i/move_2d, core {{/pix}}
+                                    </span>
+                                {{/isleader}}
+                            {{/isediting}}
+                            <a role="button"
+                               data-bs-toggle="collapse"
+                               data-for="sectiontoggler"
+                               href="#coursecontentcollapseid{{sectionid}}"
+                               id="collapsesectionid{{sectionid}}"
+                               aria-expanded="true"
+                               aria-controls="coursecontentcollapseid{{sectionid}}"
+                               class="btn btn-icon me-3 icons-collapse-expand"
+                               aria-label="{{sectiontitle}}">
+                                <span class="expanded-icon icon-no-margin p-2" title="{{#str}} collapse, core {{/str}}">
+                                    {{#pix}} t/expandedchevron, core {{/pix}}
+                                </span>
+                                <span class="collapsed-icon icon-no-margin p-2" title="{{#str}} expand, core {{/str}}">
+                                    <span class="dir-rtl-hide">{{#pix}} t/collapsedchevron, core {{/pix}}</span>
+                                </span>
+                            </a>
+                            <h3 class="h4 sectionname course-content-item d-flex align-self-stretch align-items-center mb-0"
+                                id="sectionid-{{sectionid}}-title" data-for="section_title" data-id="{{sectionid}}">
+                                {{sectiontitle}}
+                            </h3>
+                        </div>
+
+                        {{#isediting}}
+                            {{#isleader}}
+                                <div class="ms-auto d-flex align-items-center">
+                                    <a href="{{editsectionurl}}"
+                                       class="btn btn-icon btn-sm me-1"
+                                       title="{{#str}} edit {{/str}}">
+                                        {{#pix}} i/settings, core {{/pix}}
+                                    </a>
+                                    <a href="{{deletesectionurl}}"
+                                       class="btn btn-icon btn-sm"
+                                       title="{{#str}} delete {{/str}}"
+                                       onclick="return confirm('Bạn có chắc chắn muốn xóa chương này và các bài giảng bên trong?');">
+                                        {{#pix}} i/trash, core {{/pix}}
+                                    </a>
+                                </div>
+                            {{/isleader}}
+                        {{/isediting}}
+                    </div>
+
+                    {{! Danh sách activity items bên trong Section giống hệt /course/view.php }}
+                    <div id="coursecontentcollapseid{{sectionid}}" class="content course-content-item-content collapse show">
+                        <ul class="section m-0 p-0 img-text d-block js-sortable-items" data-for="cmlist" data-sectionid="{{sectionid}}" style="min-height: 24px;">
+                            {{#items}}
+                            <li class="activity resource modtype_resource js-item-li" id="module-{{id}}" data-for="cmitem" data-id="{{id}}" data-name="{{title}}">
+                                <div class="activity-item focus-control" data-region="activity-card">
+                                    <div class="activity-grid">
+
+                                        {{! Cột Tên bài giảng + Icon học liệu chuẩn Moodle }}
+                                        <div class="activity-name-area activity-instance d-flex align-items-center">
+                                            {{#canmanageitem}}
+                                                <span class="me-2 text-muted js-item-drag" data-drag-type="move" style="cursor: move;" title="{{#str}} drag_to_reorder, local_courseplan {{/str}}">
+                                                    {{#pix}} i/move_2d, core {{/pix}}
+                                                </span>
+                                            {{/canmanageitem}}
+                                            <div class="activity-icon activityiconcontainer smaller content courseicon align-self-center me-2">
+                                                <img src="{{{fileiconurl}}}" class="activityicon" alt="">
+                                            </div>
+                                            <div class="activitytitle modtype_resource position-relative align-self-center">
+                                                <div class="activityname">
+                                                    <span class="instancename fw-semibold">{{title}}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{! Cột Giảng viên phụ trách }}
+                                        <div class="d-flex align-items-center ms-auto me-3 my-1">
+                                            {{{assigneeavatar}}}
+                                            <span class="small ms-1 text-muted text-nowrap">{{assigneename}}</span>
+                                        </div>
+
+                                        {{! Cột File đính kèm / Link }}
+                                        <div class="d-flex align-items-center me-3 my-1">
+                                            {{#hasattachment}}
+                                                <div class="d-flex align-items-center">
+                                                    {{#filename}}
+                                                        <a href="{{{filedownloadurl}}}" target="_blank" class="aalink small text-truncate me-2" style="max-width: 160px;" title="{{filename}}">
+                                                            {{#pix}} i/files, core {{/pix}} {{filename}}
+                                                        </a>
+                                                    {{/filename}}
+                                                    {{#resourceurl}}
+                                                        <a href="{{resourceurl}}" target="_blank" rel="noopener" class="aalink small text-truncate" style="max-width: 140px;">
+                                                            {{#pix}} i/externallink, core {{/pix}} Link
+                                                        </a>
+                                                    {{/resourceurl}}
+                                                </div>
+                                            {{/hasattachment}}
+                                            {{^hasattachment}}
+                                                <span class="text-muted small fst-italic">{{#str}} no_attachment, local_courseplan {{/str}}</span>
+                                            {{/hasattachment}}
+
+                                            {{#caneditwork}}
+                                                <a href="{{uploadurl}}"
+                                                   class="btn btn-outline-secondary btn-sm ms-2 text-nowrap"
+                                                   title="{{#str}} upload_or_link, local_courseplan {{/str}}">
+                                                    {{#pix}} t/addfile, core {{/pix}}
+                                                </a>
+                                            {{/caneditwork}}
+                                        </div>
+
+                                        {{! Cột Hoàn thành / Dropdown trạng thái + Bình luận + Sửa }}
+                                        <div class="activity-completion align-self-center ms-auto d-flex align-items-center my-1">
+                                            <div class="me-2">
+                                                {{#caneditwork}}
+                                                    <select class="form-select form-select-sm w-auto js-status-select"
+                                                            data-itemid="{{id}}"
+                                                            data-itemtitle="{{title}}"
+                                                            data-requirefile="{{requirefile}}"
+                                                            data-hasattachment="{{hasattachment}}"
+                                                            data-currentstatus="{{status}}">
+                                                        <option value="0" {{#is_todo}}selected{{/is_todo}}>{{#str}} status_todo, local_courseplan {{/str}}</option>
+                                                        <option value="1" {{#is_inprogress}}selected{{/is_inprogress}}>{{#str}} status_inprogress, local_courseplan {{/str}}</option>
+                                                        <option value="2" {{#is_review}}selected{{/is_review}}>{{#str}} status_review, local_courseplan {{/str}}</option>
+                                                        {{#isleader}}
+                                                            <option value="3" {{#is_done}}selected{{/is_done}}>{{#str}} status_done, local_courseplan {{/str}}</option>
+                                                        {{/isleader}}
+                                                        {{^isleader}}
+                                                            {{#is_done}}
+                                                                <option value="3" selected disabled>{{#str}} status_done, local_courseplan {{/str}}</option>
+                                                            {{/is_done}}
+                                                        {{/isleader}}
+                                                    </select>
+                                                {{/caneditwork}}
+                                                {{^caneditwork}}
+                                                    <span class="badge {{statusbadgeclass}}">{{statuslabel}}</span>
+                                                {{/caneditwork}}
+                                            </div>
+
+                                            <button class="btn btn-outline-secondary btn-sm text-nowrap me-1"
+                                                    type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#comments-item-{{id}}"
+                                                    aria-expanded="false"
+                                                    title="{{#str}} comments, local_courseplan {{/str}}">
+                                                {{#pix}} t/messages, core {{/pix}} {{commentcount}}
+                                            </button>
+
+                                            {{#canmanageitem}}
+                                                <a href="{{edititemurl}}"
+                                                   class="btn btn-icon btn-sm me-1"
+                                                   title="{{#str}} edit {{/str}}">
+                                                    {{#pix}} t/edit, core {{/pix}}
+                                                </a>
+                                                <a href="{{deleteitemurl}}"
+                                                   class="btn btn-icon btn-sm text-danger"
+                                                   title="{{#str}} delete {{/str}}"
+                                                   onclick="return confirm('Bạn có chắc chắn muốn xóa bài giảng này?');">
+                                                    {{#pix}} t/delete, core {{/pix}}
+                                                </a>
+                                            {{/canmanageitem}}
+                                        </div>
+
+                                    </div>
+
+                                    {{! Khung bình luận mở rộng }}
+                                    <div class="collapse mt-2 pt-2 border-top w-100" id="comments-item-{{id}}">
+                                        <div class="mb-2 js-comment-list" id="comment-list-{{id}}">
+                                            {{#comments}}
+                                                <div class="d-flex align-items-start mb-2 pb-2 border-bottom">
+                                                    <div class="me-2">{{{useravatar}}}</div>
+                                                    <div class="small flex-grow-1">
+                                                        <div>
+                                                            <strong>{{username}}</strong>
+                                                            <span class="text-muted ms-2">{{timeago}}</span>
+                                                        </div>
+                                                        <div class="mt-1">{{content}}</div>
+                                                    </div>
+                                                </div>
+                                            {{/comments}}
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text"
+                                                   class="form-control"
+                                                   placeholder="{{#str}} comment_placeholder, local_courseplan {{/str}}"
+                                                   id="comment-input-{{id}}">
+                                            <button class="btn btn-primary js-send-comment" type="button" data-itemid="{{id}}">
+                                                {{#str}} add_comment, local_courseplan {{/str}}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </li>
+                            {{/items}}
+                        </ul>
+
+                        {{! Nút "+ Add an activity or resource" chuẩn Moodle }}
+                        {{#isediting}}
+                            {{#isleader}}
+                                <div class="section-modchooser-link mt-2">
+                                    <a href="{{additemurl}}"
+                                       class="btn add-content section-modchooser d-flex align-items-center p-2">
+                                        {{#pix}} t/add, core {{/pix}}
+                                        <span class="ms-1">{{#str}} add_item, local_courseplan {{/str}}</span>
+                                    </a>
+                                </div>
+                            {{/isleader}}
+                        {{/isediting}}
+                    </div>
+                </div>
+            </li>
+            {{/sections}}
+        </ul>
+
+        {{! Nút "+ Add section" ở cuối trang chuẩn Moodle }}
+        {{#isediting}}
+            {{#isleader}}
+                <div id="course-addsection" class="changenumsections bulk-hidden mt-3">
+                    <a href="{{addsectionurl}}"
+                       class="w-100 btn add-section d-flex justify-content-center align-items-center p-3">
+                        {{#pix}} t/add, core {{/pix}}
+                        <span class="ms-1">{{#str}} add_section, local_courseplan {{/str}}</span>
+                    </a>
+                </div>
+            {{/isleader}}
+        {{/isediting}}
+    </div>
+</div>
